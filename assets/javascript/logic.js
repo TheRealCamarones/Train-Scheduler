@@ -11,16 +11,23 @@ var newTrain = {
     nextArrival,
     minutesAway,
     firstTrain,
-}
-var newArray = [];
-
-function addTrain() {
-    var row = $("<tr>")
-        .append("<td>" + trainName + "</td><td>" + destination + "</td><td>" + frequency +"</td><td>" + nextArrival + "</td><td>" + minutesAway + "</td>");
-        $("#table-body").append(row);
 };
 
-$("#submitButton").on("click", function () {
+var config = {
+    apiKey: key,
+    authDomain: "trainschedulingapp.firebaseapp.com",
+    databaseURL: "https://trainschedulingapp.firebaseio.com",
+    projectId: "trainschedulingapp",
+    storageBucket: "trainschedulingapp.appspot.com",
+    messagingSenderId: "279864743322"
+  };
+
+  firebase.initializeApp(config);
+
+  database = firebase.database();
+
+$("#submitButton").on("click", function(event) {
+    event.preventDefault();
     trainName = $("#train-name").val().trim();
     console.log(trainName);
     destination = $("#train-destination").val().trim();
@@ -29,14 +36,20 @@ $("#submitButton").on("click", function () {
     console.log(firstTrain);
     frequency = $("#train-frequency").val().trim();
     console.log(frequency);
-    messWithTime();
-    addTrain();
+
+    database.ref().push({
+        trainName: trainName,
+        destination: destination,
+        firstTrain: firstTrain,
+        frequency: frequency,
+        dateAdded: firebase.database.ServerValue.TIMESTAMP,
+    });
 });
 
-function messWithTime() {
-    // we know firstTime and the frequency already, exactly how we did it in class
-    // First Time (pushed back 1 year to make sure it comes before current time)
-    var firstTimeConverted = moment(firstTrain, "HH:mm").subtract(1, "years");
+database.ref().on("child_added", function(snapshot) {
+    var sv = snapshot.val();
+
+    var firstTimeConverted = moment(sv.firstTrain, "HH:mm").subtract(1, "years");
     console.log(firstTimeConverted);
 
     // Current Time
@@ -47,15 +60,27 @@ function messWithTime() {
     var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
     console.log("DIFFERENCE IN TIME: " + diffTime);
 
+    var howFrequent = sv.frequency;
+
     // Time apart (remainder)
-    var tRemainder = diffTime % frequency;
+    var tRemainder = diffTime % howFrequent;
     console.log(tRemainder);
 
     // Minute Until Train
-    minutesAway = frequency - tRemainder;
+    minutesAway = howFrequent - tRemainder;
     console.log("MINUTES TILL TRAIN: " + minutesAway);
 
     // Next Train
     nextArrival = moment().add(minutesAway, "minutes").format("hh:mm A");
     console.log("ARRIVAL TIME: " + moment(nextArrival).format("hh:mm"));
-}
+
+    var row = $("<tr>")
+        .append("<td>" + trainName + "</td><td>" + destination + "</td><td>" + frequency +"</td><td>" + nextArrival + "</td><td>" + minutesAway + "</td>");
+        $("#table-body > tbody:last-child").append(row)
+}, function(errorObject) {
+    console.log("Errors: " + errorObject.code);
+});
+
+database.ref().orderByChild("dateAdded").limitToLast(1).on("child_added", function(childSnapshot) {
+    var sv = childSnapshot.val();
+});
