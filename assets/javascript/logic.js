@@ -44,9 +44,16 @@ $("#submitButton").on("click", function(event) {
         frequency: frequency,
         dateAdded: firebase.database.ServerValue.TIMESTAMP,
     });
+    
 });
 
 database.ref().on("child_added", function(snapshot) {
+
+    $("#train-name").empty();
+    $("#train-destination").empty();
+    $("#first-train").empty();
+    $("#train-frequency").empty();
+
     var sv = snapshot.val();
 
     var firstTimeConverted = moment(sv.firstTrain, "HH:mm").subtract(1, "years");
@@ -75,8 +82,8 @@ database.ref().on("child_added", function(snapshot) {
     console.log("ARRIVAL TIME: " + moment(nextArrival).format("hh:mm"));
 
     var row = $("<tr>")
-        .append("<td>" + trainName + "</td><td>" + destination + "</td><td>" + frequency +"</td><td>" + nextArrival + "</td><td>" + minutesAway + "</td>");
-        $("#table-body > tbody:last-child").append(row)
+        .append("<td>" + sv.trainName + "</td><td>" + sv.destination + "</td><td>" + sv.frequency +"</td><td>" + nextArrival + "</td><td>" + minutesAway + "</td>");
+        $("#table-body").append(row)
 }, function(errorObject) {
     console.log("Errors: " + errorObject.code);
 });
